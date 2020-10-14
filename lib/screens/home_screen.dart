@@ -1,34 +1,25 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:marine_weather/classes/place.dart';
 import 'package:marine_weather/constants.dart';
 import 'package:marine_weather/config.dart' as config;
 import 'package:http/http.dart' as http;
 import 'package:flutter_google_places/flutter_google_places.dart';
 import 'package:google_maps_webservice/places.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:marine_weather/screens/choosed_place.dart';
 
 class HomeScreen extends StatefulWidget {
+  static String screenID = '/homeScreen';
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  double latitude = 0.00;
-  double longitude = 0.00;
-  int latitudeDeg = 0;
-  int latitudeMin = 0;
-  int latitudeSec = 0;
-  int longitudeDeg = 0;
-  int longitudeMin = 0;
-  int longitudeSec = 0;
-
-  String latHemisphere = '?';
-  String longHemisphere = '?';
-
-  String addressDescription = 'No data';
-  String enteredAddress = '';
-  var params = "airTemperature";
+  static String _enteredAddress = '';
+  var _params = "airTemperature";
+  Place myPosition = Place(0, 0);
 
   @override
   void initState() {
@@ -39,64 +30,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void getPosition() async {
     Position position = await getCurrentPosition(
         desiredAccuracy: LocationAccuracy.bestForNavigation);
+    String myPositionDescription = await myPosition.getAddressFromCoordinates(
+        position.latitude, position.longitude);
+    double myPositionTemperature = await myPosition.getDetailedTemperature(
+        position.latitude, position.longitude);
     setState(() {
-      latitude = position.latitude;
-      longitude = position.longitude;
+      myPosition.setLatitude(position.latitude);
+      myPosition.setLongitude(position.longitude);
+      myPosition.setDescription(myPositionDescription);
+      myPosition.setTemperature(myPositionTemperature);
+      myPosition.getDetails();
     });
-    getAddressFromCoordinates(latitude, longitude);
-    convertCoordinates(latitude, longitude);
-    getHemispheres();
-  }
-
-  void convertCoordinates(double latitude, double longitude) {
-    latitudeDeg = latitude.truncate();
-    latitudeMin = ((latitude - latitudeDeg).abs() * 60).truncate();
-    latitudeSec =
-        ((3600 * (latitude - latitudeDeg).abs()) - 60 * latitudeMin).truncate();
-    longitudeDeg = longitude.truncate();
-    longitudeMin = ((longitude - longitudeDeg).abs() * 60).truncate();
-    longitudeSec =
-        ((3600 * (longitude - longitudeDeg).abs()) - 60 * longitudeMin)
-            .truncate();
-  }
-
-  void getHemispheres() {
-    if (latitude > 0) {
-      latHemisphere = 'North';
-    } else {
-      latHemisphere = 'South';
-    }
-
-    if (longitude > 0) {
-      longHemisphere = 'East';
-    } else {
-      longHemisphere = 'West';
-    }
-  }
-
-  void getAddressFromCoordinates(double latitude, double longitude) async {
-    List placemark = await placemarkFromCoordinates(latitude, longitude);
-    setState(() {
-      addressDescription = placemark[0].name;
-    });
-  }
-
-  Future<double> getLatitudeFromAddress(String address) async {
-    double latitude;
-
-    List location = await locationFromAddress(address);
-    latitude = location[0].latitude;
-
-    return latitude;
-  }
-
-  Future<double> getLongitudeFromAddress(String address) async {
-    double longitude;
-
-    List location = await locationFromAddress(address);
-    latitude = location[0].longitude;
-
-    return longitude;
   }
 
   @override
@@ -154,10 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               focusedBorder: UnderlineInputBorder(
                                 borderSide: BorderSide(color: kBackgroundColor),
                               ),
-                              hintText: enteredAddress.isEmpty
+                              hintText: _enteredAddress.isEmpty
                                   ? 'Name of place to search'
-                                  : enteredAddress,
-                              hintStyle: enteredAddress.isNotEmpty
+                                  : _enteredAddress,
+                              hintStyle: _enteredAddress.isNotEmpty
                                   ? TextStyle(color: kBackgroundColor)
                                   : TextStyle(),
                             ),
@@ -172,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               if (prediction != null) {
                                 setState(() {
-                                  enteredAddress = prediction.description;
+                                  _enteredAddress = prediction.description;
                                 });
                               }
                             },
@@ -198,13 +142,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           Radius.circular(5.0),
                         ),
                       ),
-                      onPressed: enteredAddress.isNotEmpty
+                      onPressed: _enteredAddress.isNotEmpty
                           ? () async {
-                              //TODO Open next screen with searching results
-
-                              var response = await http.get(
-                                url +
-                                    "?lat=$latitude&lng=$longitude&params=$params&key=${config.apiKey}",
+                              Navigator.pushNamed(
+                                context,
+                                SelectedPlaceDetails.screenID,
+                                arguments: _enteredAddress,
                               );
                             }
                           : null,
@@ -233,11 +176,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 40,
                     ),
                     title: Text(
-                      '$addressDescription',
+                      //Potrzebny provider
+
+                      '${myPosition.getDescription()}',
                       style: TextStyle(fontSize: 20),
                     ),
                     subtitle: Text(
-                        '${latitudeDeg.abs()}° $latitudeMin\' $latitudeSec\'\'${latHemisphere[0]}  ${longitudeDeg.abs()}° $longitudeMin\' $longitudeSec\'\'${longHemisphere[0]}'),
+                        '${myPosition.getLatitudeDeg().abs()}° ${myPosition.getLatitudeMin()}\' ${myPosition.getLatitudeSec()}\'\'${myPosition.getLatHemisphere()[0]}  ${myPosition.getLongitudeDeg().abs()}° ${myPosition.getLongitudeMin()}\' ${myPosition.getLongitudeSec()}\'\'${myPosition.getLongHemisphere()[0]}'),
                     trailing: Column(
                       children: [
                         Expanded(
@@ -247,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 40,
                           ),
                         ),
-                        Text('25°C'),
+                        Text('${myPosition.getTemperature()}°C'),
                       ],
                     ),
                   ),

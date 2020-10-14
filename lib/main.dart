@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:marine_weather/screens/home_screen.dart';
+import 'screens/choosed_place.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:responsive_framework/responsive_wrapper.dart';
 import 'constants.dart';
@@ -12,6 +13,11 @@ class MarineWeather extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      routes: {
+        HomeScreen.screenID: (context) => HomeScreen(),
+        SelectedPlaceDetails.screenID: (context) => SelectedPlaceDetails(),
+      },
+      initialRoute: HomeScreen.screenID,
       debugShowCheckedModeBanner: false,
       builder: (context, widget) => ResponsiveWrapper.builder(
         BouncingScrollWrapper.builder(context, widget),
@@ -27,7 +33,6 @@ class MarineWeather extends StatelessWidget {
         ],
       ),
       theme: ThemeData(scaffoldBackgroundColor: kBackgroundColor),
-      home: HomeScreen(),
     );
   }
 }
