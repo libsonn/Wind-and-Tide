@@ -27,13 +27,17 @@ class Place {
   String _longHemisphere = '?';
 
   //Constructor
-  Place(this._latitude, this._longitude);
+  Place({double latitude, double longitude}) {
+    this._latitude = latitude;
+    this._longitude = longitude;
+  }
 
   //Functions
   void getDetails() {
     convertCoordinates();
     getHemispheres();
   }
+
 
   void convertCoordinates() {
     _latitudeDeg = _latitude.truncate();
