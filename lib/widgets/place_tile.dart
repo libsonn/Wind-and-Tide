@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:marine_weather/classes/place.dart';
 import 'package:marine_weather/constants.dart';
 
+
+
 class PlaceTile extends StatelessWidget {
   PlaceTile({this.place, this.onTap});
 
@@ -53,7 +55,7 @@ class PlaceTile extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    'weather description',
+                    '${place.getWeatherDescription()}',
                     style: TextStyle(color: kGreyTextColor, fontSize: 13),
                   )
                 ],
@@ -64,21 +66,27 @@ class PlaceTile extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text(
-                    '${place.getDescription()}',
-                    style: TextStyle(
-                      fontSize: 10.0,
-                      color: kGreyTextColor,
+                  Flexible(
+                    flex: 5,
+                    child: Text(
+                      '${place.getDescription()}',
+                      style: TextStyle(
+                        fontSize: 10.0,
+                        color: kGreyTextColor,
+                      ),
                     ),
                   ),
                   Container(
-                    height: 10.0,
+                    height: 20.0,
                     width: 1.0,
                     color: kGreyTextColor,
                   ),
-                  Text(
-                    '${place.getLatitudeDeg().abs()}° ${place.getLatitudeMin()}\' ${place.getLatitudeSec()}\'\'${place.getLatHemisphere()[0]}  ${place.getLongitudeDeg().abs()}° ${place.getLongitudeMin()}\' ${place.getLongitudeSec()}\'\'${place.getLongHemisphere()[0]}',
-                    style: TextStyle(fontSize: 10, color: kGreyTextColor),
+                  Flexible(
+                    flex: 5,
+                    child: Text(
+                      '${place.getLatitudeDeg().abs()}° ${place.getLatitudeMin()}\' ${place.getLatitudeSec()}\'\'${place.getLatHemisphere()[0]}  ${place.getLongitudeDeg().abs()}° ${place.getLongitudeMin()}\' ${place.getLongitudeSec()}\'\'${place.getLongHemisphere()[0]}',
+                      style: TextStyle(fontSize: 10, color: kGreyTextColor),
+                    ),
                   ),
                 ],
               ),

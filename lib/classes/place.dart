@@ -1,13 +1,15 @@
 import 'dart:convert';
 
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:marine_weather/constants.dart';
 import 'package:marine_weather/config.dart' as config;
 
 class Place {
   //Address
-  String _description = '';
+  String _placeDescription = '';
+  String _weatherDescription = 'weather description';
 
   //Google coordinates
   double _latitude = 0.00;
@@ -27,63 +29,74 @@ class Place {
   String _longHemisphere = '?';
 
   //Constructor
-  Place({double latitude, double longitude}) {
-    this._latitude = latitude;
-    this._longitude = longitude;
+  Place();
+
+  //Functions creating places
+  static Future<Position> getMyPosition() async {
+    Position position = await getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.bestForNavigation);
+
+    return position;
   }
 
-  //Functions
-  void getDetails() {
-    convertCoordinates();
-    getHemispheres();
+  Future<Place> getDataAboutPosition(double latitude, double longitude) async {
+    _placeDescription = await getAddressFromCoordinates(latitude, longitude);
+    _temperature = await getTemperatureData(latitude, longitude);
+    _weatherDescription = await getWeatherDescriptionData(latitude, longitude);
+
+    convertCoordinates(latitude, longitude);
+    getHemispheres(latitude, longitude);
+
+    return this;
   }
 
+  Future<Place> getDetailsFromAddressDescription(String address) async {
+    double latitude = await getLatitudeFromAddress(address);
+    double longitude = await getLongitudeFromAddress(address);
 
-  void convertCoordinates() {
-    _latitudeDeg = _latitude.truncate();
-    _latitudeMin = ((_latitude - _latitudeDeg).abs() * 60).truncate();
-    _latitudeSec =
-        ((3600 * (_latitude - _latitudeDeg).abs()) - 60 * _latitudeMin)
-            .truncate();
-    _longitudeDeg = _longitude.truncate();
-    _longitudeMin = ((_longitude - _longitudeDeg).abs() * 60).truncate();
-    _longitudeSec =
-        ((3600 * (_longitude - _longitudeDeg).abs()) - 60 * _longitudeMin)
-            .truncate();
-  }
-
-  void getHemispheres() {
-    if (_latitude > 0) {
-      _latHemisphere = 'North';
-    } else {
-      _latHemisphere = 'South';
+    if (_latitude != 400) {
+      return await getDataAboutPosition(latitude, longitude);
     }
 
-    if (_longitude > 0) {
-      _longHemisphere = 'East';
-    } else {
-      _longHemisphere = 'West';
-    }
+    return this;
   }
 
-  Future<double> getDetailedTemperature(
-      double latitude, double longitude) async {
-    double _temperature = 0.00;
-    var start = new DateTime.now().toUtc();
-    start.add(Duration(hours: -1));
-    var end = new DateTime.now().toUtc();
+  //Async functions getting data from APIs
+  Future<double> getTemperatureData(double latitude, double longitude) async {
+    double _temperature = 0;
 
     var response = await http.get(
-      url +
-          "?lat=$latitude&lng=$longitude&params=airTemperature&start=$end&end=$end&key=${config.apiKey}",
+      openWeatherUrl +
+          "lat=$latitude&lon=$longitude&exclude=current&units=metric&appid=${config.openWeatherApiKey}",
     );
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body);
-      _temperature = data["hours"][0]["airTemperature"]["sg"] as double;
+      var data = response.body;
+      var decodedData = json.decode(data);
+
+      _temperature = decodedData['hourly'][0]['temp'];
     }
 
-    return _temperature;
+    return _temperature.toDouble();
+  }
+
+  Future<String> getWeatherDescriptionData(
+      double latitude, double longitude) async {
+    String _weatherDescription = '';
+
+    var response = await http.get(
+      openWeatherUrl +
+          "lat=$latitude&lon=$longitude&exclude=current&appid=${config.openWeatherApiKey}",
+    );
+
+    if (response.statusCode == 200) {
+      var data = response.body;
+      var decodedData = json.decode(data);
+      _weatherDescription =
+          decodedData['hourly'][0]['weather'][0]['description'];
+    }
+
+    return _weatherDescription.toString();
   }
 
   Future<String> getAddressFromCoordinates(
@@ -93,13 +106,73 @@ class Place {
   }
 
   Future<double> getLatitudeFromAddress(String address) async {
-    List location = await locationFromAddress(address);
+    List location = [];
+    try {
+      location = await locationFromAddress(address);
+    } catch (e) {
+      location.add(Location(longitude: 400, latitude: 400));
+      _weatherDescription = 'COULDN\'T FIND COORDINATES';
+      _latitude = 0;
+    }
+
     return location[0].latitude;
   }
 
   Future<double> getLongitudeFromAddress(String address) async {
-    List location = await locationFromAddress(address);
+    List location = [];
+
+    try {
+      location = await locationFromAddress(address);
+    } catch (e) {
+      location.add(Location(longitude: 400, latitude: 400));
+      _weatherDescription = 'COULDN\'T FIND COORDINATES';
+      _longitude = 0;
+    }
     return location[0].longitude;
+  }
+
+  //Functions calculating coordinates
+
+  void convertCoordinates(double latitude, double longitude) {
+    _latitudeDeg = latitude.truncate();
+    _latitudeMin = ((latitude - _latitudeDeg).abs() * 60).truncate();
+    _latitudeSec =
+        ((3600 * (latitude - _latitudeDeg).abs()) - 60 * _latitudeMin)
+            .truncate();
+    _longitudeDeg = longitude.truncate();
+    _longitudeMin = ((longitude - _longitudeDeg).abs() * 60).truncate();
+    _longitudeSec =
+        ((3600 * (longitude - _longitudeDeg).abs()) - 60 * _longitudeMin)
+            .truncate();
+  }
+
+  void getHemispheres(double latitude, double longitude) {
+    if (latitude > 0) {
+      _latHemisphere = 'North';
+    } else {
+      _latHemisphere = 'South';
+    }
+
+    if (longitude > 0) {
+      _longHemisphere = 'East';
+    } else {
+      _longHemisphere = 'West';
+    }
+  }
+
+  static double calculateLatitudeFromGeo(int latDeg, int latMin, int latSec) {
+    double latitude = 0.0;
+    latitude = latDeg + (latMin / 60) + (latSec / 3600);
+
+    return latitude;
+  }
+
+  static double calculateLongitudeFromGeo(
+      int longDeg, int longMin, int longSec) {
+    double longitude = 0.0;
+    longitude = longDeg + (longMin / 60) + (longSec / 3600);
+
+    return longitude;
   }
 
   //Setters for Google coordinates system
@@ -140,8 +213,12 @@ class Place {
     _longitudeSec = longitudeSec;
   }
 
-  void setDescription(String description) {
-    _description = description;
+  void setPlaceDescription(String description) {
+    _placeDescription = description;
+  }
+
+  void setWeatherDescription(String description) {
+    _weatherDescription = description;
   }
 
   //Setters of hemispheres
@@ -154,7 +231,9 @@ class Place {
   }
 
   //Getters
-  String getDescription() => _description;
+  String getDescription() => _placeDescription;
+  String getWeatherDescription() => _weatherDescription;
+
   double getLatitude() => _latitude;
   double getLongitude() => _longitude;
   double getTemperature() => _temperature;

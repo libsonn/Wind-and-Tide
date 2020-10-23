@@ -20,8 +20,7 @@ dependencies:
   flutter_google_places: ^0.2.6
   geolocator: ^6.0.0
   geocoding: ^1.0.4+1
-  provider: ^4.3.2+2
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

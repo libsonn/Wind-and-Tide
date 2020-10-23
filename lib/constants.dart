@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-const url = "https://api.stormglass.io/v2/weather/point";
+const stormGlassUrl = "https://api.stormglass.io/v2/weather/point";
+const openWeatherUrl = "https://api.openweathermap.org/data/2.5/onecall?";
 
 // Shader for text
 final Shader kTextColorGradient = LinearGradient(
@@ -9,7 +10,11 @@ final Shader kTextColorGradient = LinearGradient(
 
 // Gradient for info boxes
 const kBoxGradient = LinearGradient(
-    colors: [kBoxGradienStartColor, kBoxGradientEndColor],
+    colors: <Color>[kBoxGradienStartColor, kBoxGradientEndColor],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight);
+const kBlueGradient = LinearGradient(
+    colors: <Color>[kTextGradientStartColor, kTextGradientEndColor],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight);
 

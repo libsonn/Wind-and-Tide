@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:marine_weather/screens/home_screen.dart';
-import 'package:marine_weather/screens/search_screen.dart';
-import 'screens/selected_place_screen.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:responsive_framework/responsive_wrapper.dart';
 import 'constants.dart';
 
 void main() {
-  runApp(MarineWeather());
+  runApp(
+    MarineWeather());
 }
 
 class MarineWeather extends StatelessWidget {
@@ -16,10 +15,7 @@ class MarineWeather extends StatelessWidget {
     return MaterialApp(
       routes: {
         HomeScreen.screenID: (context) => HomeScreen(),
-        SelectedPlaceDetailsScreen.screenID: (context) => SelectedPlaceDetailsScreen(),
-        SearchScreen.screenID: (context) => SearchScreen(),
       },
-
       initialRoute: HomeScreen.screenID,
       debugShowCheckedModeBanner: false,
       builder: (context, widget) => ResponsiveWrapper.builder(
